@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proceso de Jerarquía Analítica</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        /* Estilo de fondo oscuro y ajustes para input de matriz */
+        body {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #61dafb;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        label, button, input {
+            font-size: 1em;
+            color: #d4d4d4;
+        }
+        input[type="number"], input[type="text"] {
+            background-color: #2d2d2d;
+            color: #d4d4d4;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
+        #matriz-input {
+            display: grid;
+            gap: 5px;
+            justify-content: center; /* Centrado horizontal */
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+        /* Define el tamaño de la cuadrícula */
+        #matriz-input .matrix-cell {
+            width: 50px;
+            text-align: center;
+        }
+        button {
+            background-color: #61dafb;
+            color: #1e1e1e;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #21a1f1;
+        }
+        #resultados p {
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center">
+        <h1>Teoría de Decisiones</h1>
+        <div class="mb-3">
+            <label for="nc">Número de filas o columnas</label>
+            <input type="number" id="nc" min="1" max="50" class="form-control w-50 mx-auto" placeholder="Ej. 5">
+        </div>
+        <button class="btn btn-primary mb-3" onclick="generarMatriz()">Generar Matriz</button>
+        <div id="matriz-input" class="mb-3"></div>
+        <button class="btn btn-primary mb-3" onclick="calcular()">Calcular</button>
+        <div id="resultados"></div>
+    </div>
+
+    <script>
+        let N = [];
+        let fix = 4;
+        
+        function generarMatriz() {
+            const nc = parseInt(document.getElementById("nc").value);
+            const matrizInputDiv = document.getElementById("matriz-input");
+            matrizInputDiv.innerHTML = "";
+            if (isNaN(nc) || nc < 1 || nc > 50) {
+                alert("Por favor, ingresa un número de 1 a 50.");
+                return;
+            }
+            // Configuración de la cuadrícula
+            matrizInputDiv.style.gridTemplateColumns = `repeat(${nc}, 50px)`;
+            N = Array.from({ length: nc }, () => Array(nc).fill(0));
+
+            // Crear la matriz en cuadrícula
+            for (let i = 0; i < nc; i++) {
+                for (let j = 0; j < nc; j++) {
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    input.className = "matrix-cell";
+                    input.placeholder = "n";
+                    input.onchange = () => N[i][j] = evaluarFraccion(input.value);
+                    matrizInputDiv.appendChild(input);
+                }
+            }
+        }
+
+        function evaluarFraccion(valor) {
+            if (valor.includes("/")) {
+                const [numerador, denominador] = valor.split("/").map(Number);
+                return numerador / denominador;
+            }
+            return parseFloat(valor);
+        }
+
+        function calcular() {
+            const nc = N.length;
+            if (nc === 0) {
+                alert("Por favor, ingresa una matriz.");
+                return;
+            }
+
+            // Suma de columnas
+            const sc = Array(nc).fill(0);
+            for (let j = 0; j < nc; j++) {
+                for (let i = 0; i < nc; i++) {
+                    sc[j] += N[i][j];
+                }
+            }
+
+            // Normalización de la matriz
+            const M = Array.from({ length: nc }, () => Array(nc).fill(0));
+            for (let i = 0; i < nc; i++) {
+                for (let j = 0; j < nc; j++) {
+                    M[i][j] = (N[i][j] / sc[j]).toFixed(fix);
+                }
+            }
+
+            // Calculo de los pesos W(i)
+            const wp = M.map(row => row.reduce((a, b) => a + parseFloat(b), 0).toFixed(fix));
+            const Po = wp.map(w => (w / nc).toFixed(fix));
+
+            // Calculo de Nmax
+            const Nm = N.map(row => row.reduce((sum, val, j) => sum + val * Po[j], 0)).reduce((a, b) => a + b, 0).toFixed(fix);
+
+            // Calculo de Indice de Congruencia
+            const ci = ((Nm - nc) / (nc - 1)).toFixed(fix);
+
+            // Calculo del Indice Aleatorio
+            const ri = (1.98 * (nc - 2) / nc).toFixed(fix);
+
+            // Calculo de la Razón de Consistencia
+            const cr = (ci / ri).toFixed(fix);
+
+            // Mostrar resultados
+            const resultadosDiv = document.getElementById("resultados");
+            // <p><strong>Matriz Normalizada:</strong> ${JSON.stringify(M)}</p>
+            // <p><strong>Ponderaciones por Factor W(i):</strong> ${wp.join(' , ')}</p>
+            // <p><strong>Nmax:</strong> ${Nm}</p>
+            // <p><strong>Índice de Congruencia (CI):</strong> ${ci}</p>
+            // <p><strong>Índice Aleatorio (RI):</strong> ${ri}</p>
+            resultadosDiv.innerHTML = `               
+                <p><strong>Pesos (Po):</strong> ${Po.join(' , ')}</p>                
+                <p><strong>Razón de Consistencia (CR):</strong> ${cr}</p>
+            `;
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
